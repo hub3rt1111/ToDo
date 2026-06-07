@@ -4,7 +4,7 @@ package com.example.todo.data.local
 class TaskRepository(
     private val taskDao: TaskDao
 ) {
-    suspend fun getTasks() = taskDao.getAllTasks()
+    fun getTasks() = taskDao.getAllTasks()
 
     suspend fun addTask(task: TaskEntity) {
         taskDao.insert(task)

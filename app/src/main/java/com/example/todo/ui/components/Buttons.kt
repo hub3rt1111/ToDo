@@ -20,10 +20,20 @@ fun ViewButton(
 ) {
     Button(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
-        ),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color.Gray)
+    ) {
+        Text(text)
+    }
+}
+
+@Composable
+fun SaveTaskButton(
+    text: String,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, Color.Gray)
     ) {

@@ -1,5 +1,6 @@
 package com.example.todo.ui.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Home
@@ -20,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,6 +35,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 
 import androidx.navigation.compose.rememberNavController
 import com.example.todo.ui.addtask.AddTask
+import com.example.todo.ui.components.TaskItem
 import com.example.todo.ui.components.ViewButton
 import com.example.todo.ui.settings.Settings
 import java.time.LocalDate
@@ -87,7 +91,9 @@ fun HomeScreen(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape = RoundedCornerShape(4.dp)),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             ViewButton("All") {
@@ -100,6 +106,12 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
             }
         }
+        TaskItem (
+            title = "Nauczyć się Compose",
+            description = "Card, Row, Column, Theme",
+            isDone = false,
+            onCheckedChange = { }
+        )
     }
 }
 
@@ -127,4 +139,9 @@ fun BottomBar(navController: NavController, modifier: Modifier = Modifier) {
             label = { Text("Settings") }
         )
     }
+}
+
+@Composable
+fun SearchBar(modifier: Modifier = Modifier) {
+    
 }
