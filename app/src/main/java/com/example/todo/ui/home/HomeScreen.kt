@@ -28,13 +28,16 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 import androidx.navigation.compose.rememberNavController
+import com.example.todo.ui.ToDoViewModelFactory
 import com.example.todo.ui.addtask.AddTask
+import com.example.todo.ui.addtask.AddTaskViewModel
 import com.example.todo.ui.components.TaskItem
 import com.example.todo.ui.components.ViewButton
 import com.example.todo.ui.settings.Settings
@@ -43,8 +46,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-@Preview
-fun MainScreen(modifier: Modifier = Modifier) {
+fun MainScreen(factory: ToDoViewModelFactory) {
     val navController = rememberNavController()
 
     Scaffold(
@@ -56,15 +58,21 @@ fun MainScreen(modifier: Modifier = Modifier) {
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("home") { HomeScreen() }
-            composable("addTask") { AddTask() }
+            composable("home") {
+                val homeViewModel: HomeViewModel = viewModel(factory = factory)
+                HomeScreen(Modifier, homeViewModel)
+            }
+            composable("addTask") {
+                val addTaskViewModel: AddTaskViewModel = viewModel(factory = factory)
+                AddTask(onBackClick = {}, viewModel = addTaskViewModel)
+            }
             composable("settings") { Settings() }
         }
     }
 }
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier) {
+fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel) {
     val today = LocalDate.now()
     val formatter = DateTimeFormatter.ofPattern(
         "EEEE, d MMMM, yyyy",
@@ -106,7 +114,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
             }
         }
-        TaskItem (
+        TaskItem(
             title = "Nauczyć się Compose",
             description = "Card, Row, Column, Theme",
             isDone = false,
@@ -143,5 +151,5 @@ fun BottomBar(navController: NavController, modifier: Modifier = Modifier) {
 
 @Composable
 fun SearchBar(modifier: Modifier = Modifier) {
-    
+
 }

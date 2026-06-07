@@ -11,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.ViewModelProvider
+import com.example.todo.ui.ToDoViewModelFactory
 import com.example.todo.ui.home.HomeScreen
 import com.example.todo.ui.home.MainScreen
 import com.example.todo.ui.theme.ToDoTheme
@@ -18,10 +20,14 @@ import com.example.todo.ui.theme.ToDoTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val repository = (application as TodoApplication).repository
+        val factory = ToDoViewModelFactory(repository)
+
         enableEdgeToEdge()
         setContent {
             ToDoTheme {
-                MainScreen()
+                MainScreen(factory)
             }
         }
     }
