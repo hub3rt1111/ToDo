@@ -13,4 +13,7 @@ class TaskRepository(
     suspend fun deleteTask(task: TaskEntity) {
         taskDao.delete(task)
     }
+    suspend fun updateTask(task: TaskEntity) {
+        taskDao.update(task)
+    }
 }

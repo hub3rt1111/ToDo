@@ -29,4 +29,10 @@ class HomeViewModel(
             repository.deleteTask(task)
         }
     }
+
+    fun updateTask(task: TaskEntity) {
+        viewModelScope.launch {
+            repository.updateTask(task)
+        }
+    }
 }

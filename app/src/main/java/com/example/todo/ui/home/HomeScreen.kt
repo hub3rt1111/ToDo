@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
@@ -20,6 +22,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +39,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 import androidx.navigation.compose.rememberNavController
+import com.example.todo.data.local.TaskStatus
 import com.example.todo.ui.ToDoViewModelFactory
 import com.example.todo.ui.addtask.AddTask
 import com.example.todo.ui.addtask.AddTaskViewModel
@@ -78,6 +83,9 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel) {
         "EEEE, d MMMM, yyyy",
         Locale.ENGLISH
     )
+
+    val tasks by homeViewModel.tasks.collectAsState()
+
     Column(modifier = modifier.fillMaxSize()) {
         Row(
             horizontalArrangement = Arrangement.SpaceAround,
@@ -104,22 +112,36 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel) {
                 .clip(shape = RoundedCornerShape(4.dp)),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            ViewButton("All") {
+            ViewButton(
+                Modifier
+                    .weight(1f)
+                    .padding(6.dp), "All"
+            ) {
 
             }
-            ViewButton("For today") {
+            ViewButton(
+                Modifier
+                    .weight(1f)
+                    .padding(6.dp), "For today"
+            ) {
 
             }
-            ViewButton("Outstanding ") {
+            ViewButton(
+                Modifier
+                    .weight(1f)
+                    .padding(6.dp), "Outstanding "
+            ) {
 
             }
         }
-        TaskItem(
-            title = "Nauczyć się Compose",
-            description = "Card, Row, Column, Theme",
-            isDone = false,
-            onCheckedChange = { }
-        )
+
+        LazyColumn() {
+            items(tasks) { task ->
+                TaskItem(task = task, isDone = task.status == TaskStatus.DONE) { checked ->
+                    homeViewModel.updateTask(task.copy(status = if (checked) TaskStatus.DONE else TaskStatus.TODO))
+                }
+            }
+        }
     }
 }
 

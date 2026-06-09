@@ -15,10 +15,12 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun ViewButton(
+    modifier: Modifier,
     text: String,
     onClick: () -> Unit
 ) {
     Button(
+        modifier = modifier,
         onClick = onClick,
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, Color.Gray)

@@ -18,11 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.example.todo.data.local.TaskEntity
 
 @Composable
 fun TaskItem(
-    title: String,
-    description: String? = null,
+    task: TaskEntity,
     isDone: Boolean = false,
     onCheckedChange: (Boolean) -> Unit
 ) {
@@ -52,19 +52,17 @@ fun TaskItem(
 
             Column {
                 Text(
-                    text = title,
+                    text = task.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                if (description != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = task.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
