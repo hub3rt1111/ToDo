@@ -1,5 +1,6 @@
 package com.example.todo.ui.addtask
 
+import android.R.attr.text
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -27,7 +30,9 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +48,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todo.data.local.Priority
 import com.example.todo.ui.components.SaveTaskButton
+import java.time.Instant
+import java.time.ZoneId
 
 
 @Composable
@@ -52,7 +59,6 @@ fun AddTask(
     onBackClick: () -> Unit,
     viewModel: AddTaskViewModel
 ) {
-
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -81,6 +87,8 @@ fun AddTask(
             description = description,
             priority = priority,
             category = category,
+            dueDate = dueDate,
+            onDueDateChange = { dueDate = it },
             onTitleChange = { title = it },
             onDescriptionChange = { description = it },
             onPriorityChange = { priority = it },
@@ -96,6 +104,8 @@ private fun TaskForm(
     description: String,
     priority: Priority,
     category: String,
+    dueDate: Long?,
+    onDueDateChange: (Long?) -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onPriorityChange: (Priority) -> Unit,
@@ -120,20 +130,15 @@ private fun TaskForm(
             )
         }
 
-
-
         Spacer(modifier = Modifier.height(16.dp))
 
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            InfoPanel(
-                Icons.Default.CalendarMonth,
-                "Completion date",
-                "Select date"
-            ) {
-
-            }
+            DatePicker(
+                selectedDate = dueDate,
+                onDateSelected = onDueDateChange
+            )
             InfoPanel(
                 Icons.Default.LocationOn,
                 "Location",
@@ -309,6 +314,47 @@ fun CategoryPanel(
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun DatePicker(
+    selectedDate: Long?,
+    onDateSelected: (Long) -> Unit,
+) {
+    val datePickerState = rememberDatePickerState()
+    var showDialog by remember { mutableStateOf(false) }
+
+    val formattedText = selectedDate?.let {
+        Instant.ofEpochMilli(it)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .toString()
+    } ?: "Select date"
+
+    InfoPanel(
+        icon = Icons.Default.CalendarMonth,
+        description = "Completion date",
+        info = formattedText,
+        onClick = { showDialog = true }
+    )
+
+    if(showDialog) {
+        DatePickerDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            onDateSelected(it)
+                        }
+                        showDialog = false
+                    }
+                ) {Text("OK")}
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }
