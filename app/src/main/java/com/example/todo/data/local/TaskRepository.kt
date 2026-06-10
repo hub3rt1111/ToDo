@@ -6,8 +6,8 @@ class TaskRepository(
 ) {
     fun getTasks() = taskDao.getAllTasks()
 
-    suspend fun addTask(task: TaskEntity) {
-        taskDao.insert(task)
+    suspend fun addTask(task: TaskEntity): Long {
+        return taskDao.insert(task)
     }
 
     suspend fun deleteTask(task: TaskEntity) {

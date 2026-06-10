@@ -1,6 +1,8 @@
 package com.example.todo.ui.addtask
 
-import android.R.attr.text
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -42,10 +45,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todo.data.local.Priority
 import com.example.todo.ui.components.SaveTaskButton
 import java.time.Instant
@@ -57,7 +58,7 @@ import java.time.ZoneId
 fun AddTask(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit,
-    viewModel: AddTaskViewModel
+    viewModel: AddTaskViewModel,
 ) {
 
     var title by remember { mutableStateOf("") }
@@ -65,6 +66,7 @@ fun AddTask(
     var dueDate by remember { mutableStateOf<Long?>(null) }
     var priority by remember { mutableStateOf(Priority.LOW) }
     var category by remember { mutableStateOf("") }
+    var attachment by remember { mutableStateOf<Uri?>(null) }
 
     Column(
         modifier = modifier
@@ -75,7 +77,13 @@ fun AddTask(
         TopPanel(
             onBackClick = onBackClick,
             onSaveClick = {
-                viewModel.saveTask(title, description, priority, category)
+                viewModel.saveTaskWithAttachment(
+                    title = title,
+                    description = description,
+                    priority = priority,
+                    category = category,
+                    attachmentUri = attachment
+                )
                 onBackClick()
             }
         )
@@ -92,7 +100,8 @@ fun AddTask(
             onTitleChange = { title = it },
             onDescriptionChange = { description = it },
             onPriorityChange = { priority = it },
-            onCategoryChange = { category = it }
+            onCategoryChange = { category = it },
+            onAttachmentChange = { attachment = it }
         )
 
     }
@@ -109,7 +118,8 @@ private fun TaskForm(
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onPriorityChange: (Priority) -> Unit,
-    onCategoryChange: (String) -> Unit
+    onCategoryChange: (String) -> Unit,
+    onAttachmentChange: (Uri) -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -135,7 +145,7 @@ private fun TaskForm(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            DatePicker(
+            MyDatePicker(
                 selectedDate = dueDate,
                 onDateSelected = onDueDateChange
             )
@@ -167,6 +177,13 @@ private fun TaskForm(
         CategoryPanel(
             selectedText = category,
             onValueChange = onCategoryChange
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        AttachmentPicker(
+            onFileSelected = { uri ->
+                onAttachmentChange(uri)
+            }
         )
     }
 }
@@ -319,7 +336,7 @@ fun CategoryPanel(
 }
 
 @Composable
-fun DatePicker(
+fun MyDatePicker(
     selectedDate: Long?,
     onDateSelected: (Long) -> Unit,
 ) {
@@ -340,7 +357,7 @@ fun DatePicker(
         onClick = { showDialog = true }
     )
 
-    if(showDialog) {
+    if (showDialog) {
         DatePickerDialog(
             onDismissRequest = { showDialog = false },
             confirmButton = {
@@ -351,11 +368,29 @@ fun DatePicker(
                         }
                         showDialog = false
                     }
-                ) {Text("OK")}
+                ) { Text("OK") }
             }
         ) {
             DatePicker(state = datePickerState)
         }
     }
 }
+
+@Composable
+fun AttachmentPicker(
+    onFileSelected: (Uri) -> Unit
+) {
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        uri?.let { onFileSelected(it) }
+    }
+    Button(
+        onClick = { launcher.launch("*/*") }
+    ) {
+        Text("Select file")
+    }
+}
+
+
 

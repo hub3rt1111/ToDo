@@ -4,9 +4,10 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [TaskEntity::class],
-    version = 1
+    entities = [TaskEntity::class, AttachmentEntity::class],
+    version = 2
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
+    abstract fun attachmentDao(): AttachmentDao
 }

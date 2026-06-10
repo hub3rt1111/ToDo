@@ -12,8 +12,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val repository = (application as TodoApplication).repository
-        val factory = ToDoViewModelFactory(repository)
+        val taskRepository = (application as TodoApplication).taskRepository
+        val attachmentRepository = (application as TodoApplication).attachmentRepository
+        val factory = ToDoViewModelFactory(taskRepository, attachmentRepository)
 
         enableEdgeToEdge()
         setContent {
