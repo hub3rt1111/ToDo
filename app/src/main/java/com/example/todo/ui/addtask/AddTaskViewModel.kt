@@ -21,6 +21,9 @@ class AddTaskViewModel(
         description: String,
         priority: Priority,
         category: String,
+        dueDate: Long?,
+        latitude: Double?,
+        longitude: Double?,
         attachmentUri: Uri?
     ) {
         viewModelScope.launch {
@@ -32,9 +35,9 @@ class AddTaskViewModel(
                     priority = priority,
                     category = category,
                     status = TaskStatus.TODO,
-                    dueDate = null,
-                    latitude = null,
-                    longitude = null,
+                    dueDate = dueDate,
+                    latitude = latitude,
+                    longitude = longitude,
                     reminderTime = null
                 )
             )

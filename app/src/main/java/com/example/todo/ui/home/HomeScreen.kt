@@ -67,11 +67,15 @@ fun MainScreen(factory: ToDoViewModelFactory) {
         ) {
             composable("home") {
                 val homeViewModel: HomeViewModel = viewModel(factory = factory)
-                HomeScreen(Modifier, homeViewModel)
+                HomeScreen(Modifier.padding(innerPadding), homeViewModel)
             }
             composable("addTask") {
                 val addTaskViewModel: AddTaskViewModel = viewModel(factory = factory)
-                AddTask(onBackClick = {}, viewModel = addTaskViewModel)
+                AddTask(
+                    Modifier.padding(innerPadding),
+                    onBackClick = {},
+                    viewModel = addTaskViewModel
+                )
             }
             composable("settings") { Settings() }
         }
@@ -154,6 +158,7 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel) {
                 TaskItem(task = task, isDone = task.status == TaskStatus.DONE) { checked ->
                     homeViewModel.updateTask(task.copy(status = if (checked) TaskStatus.DONE else TaskStatus.TODO))
                 }
+
             }
         }
     }
@@ -194,6 +199,8 @@ fun SearchBar(
         value = query,
         onValueChange = onQueryChange,
         label = { Text("Search") },
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
     )
 }

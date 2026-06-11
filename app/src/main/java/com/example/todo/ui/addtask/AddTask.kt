@@ -1,5 +1,9 @@
 package com.example.todo.ui.addtask
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
@@ -44,34 +49,52 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.todo.data.local.Priority
 import com.example.todo.ui.components.SaveTaskButton
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority as LocationPriority
 import java.time.Instant
 import java.time.ZoneId
 
 
 @Composable
-
 fun AddTask(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit,
     viewModel: AddTaskViewModel,
 ) {
-
+    val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var dueDate by remember { mutableStateOf<Long?>(null) }
     var priority by remember { mutableStateOf(Priority.LOW) }
     var category by remember { mutableStateOf("") }
     var attachment by remember { mutableStateOf<Uri?>(null) }
+    var latitude by remember { mutableStateOf<Double?>(null) }
+    var longitude by remember { mutableStateOf<Double?>(null) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        ) {
+            getCurrentLocation(context) { lat, lon ->
+                latitude = lat
+                longitude = lon
+            }
+        }
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp)
     ) {
 
         TopPanel(
@@ -82,6 +105,9 @@ fun AddTask(
                     description = description,
                     priority = priority,
                     category = category,
+                    dueDate = dueDate,
+                    latitude = latitude,
+                    longitude = longitude,
                     attachmentUri = attachment
                 )
                 onBackClick()
@@ -96,15 +122,52 @@ fun AddTask(
             priority = priority,
             category = category,
             dueDate = dueDate,
+            latitude = latitude,
+            longitude = longitude,
             onDueDateChange = { dueDate = it },
             onTitleChange = { title = it },
             onDescriptionChange = { description = it },
             onPriorityChange = { priority = it },
             onCategoryChange = { category = it },
-            onAttachmentChange = { attachment = it }
+            onAttachmentChange = { attachment = it },
+            onLocationClick = {
+                if (hasLocationPermission(context)) {
+                    getCurrentLocation(context) { lat, lon ->
+                        latitude = lat
+                        longitude = lon
+                    }
+                } else {
+                    permissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                }
+            }
         )
-
     }
+}
+
+@SuppressLint("MissingPermission")
+private fun getCurrentLocation(context: Context, onLocationReceived: (Double, Double) -> Unit) {
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+    fusedLocationClient.getCurrentLocation(LocationPriority.PRIORITY_HIGH_ACCURACY, null)
+        .addOnSuccessListener { location ->
+            location?.let {
+                onLocationReceived(it.latitude, it.longitude)
+            }
+        }
+}
+
+private fun hasLocationPermission(context: Context): Boolean {
+    return ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
 }
 
 @Composable
@@ -114,18 +177,21 @@ private fun TaskForm(
     priority: Priority,
     category: String,
     dueDate: Long?,
+    latitude: Double?,
+    longitude: Double?,
     onDueDateChange: (Long?) -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onPriorityChange: (Priority) -> Unit,
     onCategoryChange: (String) -> Unit,
     onAttachmentChange: (Uri) -> Unit,
+    onLocationClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.Center
     ) {
-        Column() {
+        Column {
             TextField(
                 value = title,
                 onValueChange = { onTitleChange(it) },
@@ -149,12 +215,17 @@ private fun TaskForm(
                 selectedDate = dueDate,
                 onDateSelected = onDueDateChange
             )
+            val locationText = if (latitude != null && longitude != null) {
+                "%.2f, %.2f".format(latitude, longitude)
+            } else {
+                "Select current"
+            }
             InfoPanel(
                 Icons.Default.LocationOn,
                 "Location",
-                "Select location"
+                locationText
             ) {
-
+                onLocationClick()
             }
             InfoPanel(
                 Icons.Default.Repeat,
@@ -198,23 +269,30 @@ private fun InfoPanel(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = icon,
                 contentDescription = "info image",
                 modifier = Modifier.size(28.dp)
             )
+            Spacer(Modifier.width(8.dp))
             Text(description)
         }
-        Row {
-            Text(info)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                info,
+                modifier = Modifier.widthIn(max = 150.dp),
+                maxLines = 1
+            )
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = "select",
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
     }
@@ -312,10 +390,12 @@ fun CategoryPanel(
             readOnly = true,
             label = { Text("Select category") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor(
-                type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
-                enabled = true
-            )
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(
+                    type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                    enabled = true
+                )
         )
 
         ExposedDropdownMenu(
@@ -391,6 +471,3 @@ fun AttachmentPicker(
         Text("Select file")
     }
 }
-
-
-

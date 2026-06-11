@@ -8,5 +8,5 @@ data class AttachmentEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val taskId: Long,
-    val uri: String
+    val uri: String,
 )
