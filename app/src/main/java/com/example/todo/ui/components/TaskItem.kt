@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.todo.data.local.Priority
 import com.example.todo.data.local.TaskEntity
@@ -53,7 +54,7 @@ fun TaskItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp),
+            .padding(6.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -101,7 +102,9 @@ fun TaskItem(
                     Text(
                         text = task.description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Row() {
                         Icon(
@@ -152,7 +155,7 @@ fun TaskItem(
 }
 
 fun getLabel(dateMillis: Long?): String {
-    if (dateMillis == null) return "Nothing"
+    if (dateMillis == null) return "No date"
     val date = Instant.ofEpochMilli(dateMillis)
         .atZone(ZoneId.systemDefault())
         .toLocalDate()

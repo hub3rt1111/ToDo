@@ -47,6 +47,7 @@ import com.example.todo.ui.addtask.AddTask
 import com.example.todo.ui.addtask.AddTaskViewModel
 import com.example.todo.ui.components.TaskItem
 import com.example.todo.ui.components.ViewButton
+import com.example.todo.ui.components.getLabel
 import com.example.todo.ui.settings.Settings
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -67,12 +68,12 @@ fun MainScreen(factory: ToDoViewModelFactory) {
         ) {
             composable("home") {
                 val homeViewModel: HomeViewModel = viewModel(factory = factory)
-                HomeScreen(Modifier.padding(innerPadding), homeViewModel)
+                HomeScreen(Modifier, homeViewModel)
             }
             composable("addTask") {
                 val addTaskViewModel: AddTaskViewModel = viewModel(factory = factory)
                 AddTask(
-                    Modifier.padding(innerPadding),
+                    Modifier,
                     onBackClick = {},
                     viewModel = addTaskViewModel
                 )
@@ -92,8 +93,18 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel) {
 
     val tasks by homeViewModel.tasks.collectAsState()
     var query by remember { mutableStateOf("") }
-    val filteredTasks = tasks.filter {
-        it.title.contains(query, ignoreCase = true)
+    var selectedFilter by remember { mutableStateOf("All") }
+
+    val filteredTasks = remember(tasks, query, selectedFilter) {
+        tasks.filter { task ->
+            val matchesQuery = task.title.contains(query, ignoreCase = true)
+            val matchesFilter = when (selectedFilter) {
+                "For today" -> getLabel(task.dueDate) == "Today"
+                "Outstanding" -> task.status == TaskStatus.TODO
+                else -> true
+            }
+            matchesQuery && matchesFilter
+        }
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -124,24 +135,21 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel) {
         ) {
             ViewButton(
                 Modifier
-
-                    .padding(6.dp), "All"
+                    .padding(6.dp), "All", selectedFilter == "All"
             ) {
-
+                selectedFilter = "All"
             }
             ViewButton(
                 Modifier
-
-                    .padding(6.dp), "For today"
+                    .padding(6.dp), "For today", selectedFilter == "For today"
             ) {
-
+                selectedFilter = "For today"
             }
             ViewButton(
                 Modifier
-
-                    .padding(6.dp), "Outstanding"
+                    .padding(6.dp), "Outstanding", selectedFilter == "Outstanding"
             ) {
-
+                selectedFilter = "Outstanding"
             }
         }
 

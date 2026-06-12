@@ -189,7 +189,6 @@ private fun TaskForm(
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center
     ) {
         Column {
             TextField(
