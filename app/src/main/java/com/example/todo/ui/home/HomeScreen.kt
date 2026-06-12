@@ -124,22 +124,22 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel) {
         ) {
             ViewButton(
                 Modifier
-                    .weight(1f)
+
                     .padding(6.dp), "All"
             ) {
 
             }
             ViewButton(
                 Modifier
-                    .weight(1f)
+
                     .padding(6.dp), "For today"
             ) {
 
             }
             ViewButton(
                 Modifier
-                    .weight(1f)
-                    .padding(6.dp), "Outstanding "
+
+                    .padding(6.dp), "Outstanding"
             ) {
 
             }

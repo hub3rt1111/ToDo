@@ -188,7 +188,7 @@ private fun TaskForm(
     onLocationClick: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center
     ) {
         Column {
