@@ -374,7 +374,6 @@ fun PriorityPanel(
 fun CategoryPanel(
     selectedText: String,
     onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
 ) {
 
     var expanded by remember { mutableStateOf(false) }

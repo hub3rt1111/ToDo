@@ -40,7 +40,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.todo.data.local.TaskEntity
 import com.example.todo.data.local.TaskStatus
 import com.example.todo.ui.ToDoViewModelFactory
 import com.example.todo.ui.addtask.AddTask
@@ -49,6 +48,7 @@ import com.example.todo.ui.components.TaskItem
 import com.example.todo.ui.components.ViewButton
 import com.example.todo.ui.components.getLabel
 import com.example.todo.ui.settings.Settings
+import com.example.todo.ui.taskdetails.TaskDetails
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -68,7 +68,7 @@ fun MainScreen(factory: ToDoViewModelFactory) {
         ) {
             composable("home") {
                 val homeViewModel: HomeViewModel = viewModel(factory = factory)
-                HomeScreen(Modifier, homeViewModel)
+                HomeScreen(Modifier, homeViewModel, navController)
             }
             composable("addTask") {
                 val addTaskViewModel: AddTaskViewModel = viewModel(factory = factory)
@@ -79,12 +79,16 @@ fun MainScreen(factory: ToDoViewModelFactory) {
                 )
             }
             composable("settings") { Settings() }
+            composable("taskDetails/{taskId}") { backStackEntry ->
+                val taskId = backStackEntry.arguments?.getString("taskId")?.toLong()
+                TaskDetails(taskId = taskId)
+            }
         }
     }
 }
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel) {
+fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel, navController: NavController) {
     val today = LocalDate.now()
     val formatter = DateTimeFormatter.ofPattern(
         "EEEE, d MMMM, yyyy",
@@ -163,7 +167,9 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel) {
 
         LazyColumn() {
             items(filteredTasks) { task ->
-                TaskItem(task = task, isDone = task.status == TaskStatus.DONE) { checked ->
+                TaskItem(task = task, isDone = task.status == TaskStatus.DONE, onClick = {
+                    navController.navigate("taskDetails/${task.id}")
+                }) { checked ->
                     homeViewModel.updateTask(task.copy(status = if (checked) TaskStatus.DONE else TaskStatus.TODO))
                 }
 

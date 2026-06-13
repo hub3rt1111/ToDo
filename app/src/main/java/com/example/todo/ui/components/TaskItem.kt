@@ -1,6 +1,7 @@
 package com.example.todo.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,7 +44,8 @@ import java.time.ZoneId
 fun TaskItem(
     task: TaskEntity,
     isDone: Boolean = false,
-    onCheckedChange: (Boolean) -> Unit
+    onClick: () -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
 ) {
     val priorityColor = when (task.priority) {
         Priority.HIGH -> Color.Red
@@ -91,7 +93,7 @@ fun TaskItem(
                     )
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f).clickable(onClick = onClick)) {
                     Text(
                         text = task.title,
                         style = MaterialTheme.typography.titleMedium,
