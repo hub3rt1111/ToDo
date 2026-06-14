@@ -36,6 +36,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.todo.data.local.Priority
 import com.example.todo.data.local.TaskEntity
+import com.example.todo.ui.theme.PriorityHigh
+import com.example.todo.ui.theme.PriorityLow
+import com.example.todo.ui.theme.PriorityMedium
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -48,9 +51,9 @@ fun TaskItem(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     val priorityColor = when (task.priority) {
-        Priority.HIGH -> Color.Red
-        Priority.MEDIUM -> Color.Magenta
-        Priority.LOW -> Color.Green
+        Priority.HIGH -> PriorityHigh
+        Priority.MEDIUM -> PriorityMedium
+        Priority.LOW -> PriorityLow
     }
 
     Card(

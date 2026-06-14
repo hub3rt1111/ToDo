@@ -7,8 +7,18 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,6 +46,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -94,10 +105,13 @@ fun AddTask(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .navigationBarsPadding()
             .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
 
         TopPanel(
+            title = "Add task",
             onBackClick = onBackClick,
             onSaveClick = {
                 viewModel.saveTaskWithAttachment(
@@ -188,27 +202,46 @@ private fun TaskForm(
     onLocationClick: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(8.dp)
+        ) {
             TextField(
                 value = title,
                 onValueChange = { onTitleChange(it) },
                 label = { Text("Title") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                )
             )
             TextField(
                 value = description,
                 onValueChange = { onDescriptionChange(it) },
                 label = { Text("Add task description") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                )
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
         Column(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             MyDatePicker(
                 selectedDate = dueDate,
@@ -235,26 +268,37 @@ private fun TaskForm(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
         PriorityPanel(
             selectedPriority = priority,
-            onPrioritySelected = onPriorityChange
+            onPrioritySelected = onPriorityChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(16.dp)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         CategoryPanel(
             selectedText = category,
-            onValueChange = onCategoryChange
+            onValueChange = onCategoryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         )
-        Spacer(modifier = Modifier.height(16.dp))
 
         AttachmentPicker(
             onFileSelected = { uri ->
                 onAttachmentChange(uri)
-            }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(16.dp)
         )
+        
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -298,7 +342,8 @@ private fun InfoPanel(
 }
 
 @Composable
-private fun TopPanel(
+fun TopPanel(
+    title: String,
     onBackClick: () -> Unit,
     onSaveClick: () -> Unit
 ) {
@@ -313,13 +358,13 @@ private fun TopPanel(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "arrow back",
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(24.dp)
                     .clickable { onBackClick() }
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(16.dp))
             Text(
-                "Add task",
-                fontSize = 32.sp
+                title,
+                style = MaterialTheme.typography.headlineMedium
             )
         }
 
@@ -374,13 +419,15 @@ fun PriorityPanel(
 fun CategoryPanel(
     selectedText: String,
     onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
 
     var expanded by remember { mutableStateOf(false) }
     val categoryItems = listOf("Work", "Personal", "Shopping", "Health", "Finance", "Other")
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
     ) {
         TextField(
             value = selectedText,
@@ -393,7 +440,13 @@ fun CategoryPanel(
                 .menuAnchor(
                     type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
                     enabled = true
-                )
+                ),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+
+            )
         )
 
         ExposedDropdownMenu(
@@ -456,16 +509,21 @@ fun MyDatePicker(
 
 @Composable
 fun AttachmentPicker(
-    onFileSelected: (Uri) -> Unit
+    onFileSelected: (Uri) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri ->
-        uri?.let { onFileSelected(it) }
+    Row(modifier = modifier.fillMaxWidth()) {
+        val launcher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
+        ) { uri ->
+            uri?.let { onFileSelected(it) }
+        }
+        Button(
+            onClick = { launcher.launch("*/*") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Select file")
+        }
     }
-    Button(
-        onClick = { launcher.launch("*/*") }
-    ) {
-        Text("Select file")
-    }
+
 }

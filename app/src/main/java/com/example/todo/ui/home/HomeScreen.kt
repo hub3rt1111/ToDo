@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -98,8 +99,9 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel, navC
     val tasks by homeViewModel.tasks.collectAsState()
     var query by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
+    var selectedSort by remember { mutableStateOf("Default") }
 
-    val filteredTasks = remember(tasks, query, selectedFilter) {
+    val filteredTasks = remember(tasks, query, selectedFilter, selectedSort) {
         tasks.filter { task ->
             val matchesQuery = task.title.contains(query, ignoreCase = true)
             val matchesFilter = when (selectedFilter) {
@@ -108,6 +110,12 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel, navC
                 else -> true
             }
             matchesQuery && matchesFilter
+        }.let { filtered ->
+            when (selectedSort) {
+                "Priority" -> filtered.sortedByDescending { it.priority }
+                "Due Date" -> filtered.sortedBy { it.dueDate ?: Long.MAX_VALUE }
+                else -> filtered
+            }
         }
     }
 
@@ -119,13 +127,13 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel, navC
         ) {
             Text(
                 "My tasks",
-                fontSize = 32.sp
+                style = MaterialTheme.typography.headlineMedium
             )
             Text(
                 today.format(formatter),
+                style = MaterialTheme.typography.bodyMedium,
                 fontStyle = FontStyle.Italic,
                 color = Color.Gray,
-                fontSize = 18.sp
             )
         }
 
@@ -162,6 +170,38 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel, navC
         SearchBar(
             query = query,
             onQueryChange = { query = it })
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            "Sort by:",
+            modifier = Modifier.padding(horizontal = 16.dp),
+            fontSize = 14.sp,
+            color = Color.Gray
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.Start,
+        ) {
+            ViewButton(
+                Modifier.padding(4.dp), "Default", selectedSort == "Default"
+            ) {
+                selectedSort = "Default"
+            }
+            ViewButton(
+                Modifier.padding(4.dp), "Priority", selectedSort == "Priority"
+            ) {
+                selectedSort = "Priority"
+            }
+            ViewButton(
+                Modifier.padding(4.dp), "Due Date", selectedSort == "Due Date"
+            ) {
+                selectedSort = "Due Date"
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
