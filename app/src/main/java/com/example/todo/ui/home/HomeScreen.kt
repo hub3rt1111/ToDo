@@ -1,8 +1,10 @@
 package com.example.todo.ui.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +24,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,6 +53,7 @@ import com.example.todo.ui.components.ViewButton
 import com.example.todo.ui.components.getLabel
 import com.example.todo.ui.settings.Settings
 import com.example.todo.ui.taskdetails.TaskDetails
+import com.example.todo.ui.taskdetails.TaskDetailsViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -75,21 +79,30 @@ fun MainScreen(factory: ToDoViewModelFactory) {
                 val addTaskViewModel: AddTaskViewModel = viewModel(factory = factory)
                 AddTask(
                     Modifier,
-                    onBackClick = {},
-                    viewModel = addTaskViewModel
+                    onBackClick = {navController.popBackStack()},
+                    viewModel = addTaskViewModel,
                 )
             }
             composable("settings") { Settings() }
             composable("taskDetails/{taskId}") { backStackEntry ->
                 val taskId = backStackEntry.arguments?.getString("taskId")?.toLong()
-                TaskDetails(taskId = taskId)
+                val taskDetailsViewModel: TaskDetailsViewModel = viewModel(factory = factory)
+                TaskDetails(
+                    taskId = taskId,
+                    viewModel = taskDetailsViewModel,
+                    onBackClick = {}
+                )
             }
         }
     }
 }
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel, navController: NavController) {
+fun HomeScreen(
+    modifier: Modifier = Modifier,
+    homeViewModel: HomeViewModel,
+    navController: NavController
+) {
     val today = LocalDate.now()
     val formatter = DateTimeFormatter.ofPattern(
         "EEEE, d MMMM, yyyy",
@@ -119,100 +132,132 @@ fun HomeScreen(modifier: Modifier = Modifier, homeViewModel: HomeViewModel, navC
         }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                "My tasks",
-                style = MaterialTheme.typography.headlineMedium
-            )
-            Text(
-                today.format(formatter),
-                style = MaterialTheme.typography.bodyMedium,
-                fontStyle = FontStyle.Italic,
-                color = Color.Gray,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(shape = RoundedCornerShape(4.dp)),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .padding(horizontal = 16.dp)
         ) {
-            ViewButton(
-                Modifier
-                    .padding(6.dp), "All", selectedFilter == "All"
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp)
             ) {
-                selectedFilter = "All"
+                Text(
+                    "My tasks",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                Text(
+                    today.format(formatter),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontStyle = FontStyle.Italic,
+                    color = Color.Gray,
+                )
             }
-            ViewButton(
-                Modifier
-                    .padding(6.dp), "For today", selectedFilter == "For today"
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .padding(8.dp)
             ) {
-                selectedFilter = "For today"
+                SearchBar(
+                    query = query,
+                    onQueryChange = { query = it })
             }
-            ViewButton(
-                Modifier
-                    .padding(6.dp), "Outstanding", selectedFilter == "Outstanding"
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .padding(12.dp)
             ) {
-                selectedFilter = "Outstanding"
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        SearchBar(
-            query = query,
-            onQueryChange = { query = it })
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            "Sort by:",
-            modifier = Modifier.padding(horizontal = 16.dp),
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.Start,
-        ) {
-            ViewButton(
-                Modifier.padding(4.dp), "Default", selectedSort == "Default"
-            ) {
-                selectedSort = "Default"
-            }
-            ViewButton(
-                Modifier.padding(4.dp), "Priority", selectedSort == "Priority"
-            ) {
-                selectedSort = "Priority"
-            }
-            ViewButton(
-                Modifier.padding(4.dp), "Due Date", selectedSort == "Due Date"
-            ) {
-                selectedSort = "Due Date"
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn() {
-            items(filteredTasks) { task ->
-                TaskItem(task = task, isDone = task.status == TaskStatus.DONE, onClick = {
-                    navController.navigate("taskDetails/${task.id}")
-                }) { checked ->
-                    homeViewModel.updateTask(task.copy(status = if (checked) TaskStatus.DONE else TaskStatus.TODO))
+                Text(
+                    "Filter by status",
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ViewButton(
+                        Modifier.weight(1f), "All", selectedFilter == "All"
+                    ) {
+                        selectedFilter = "All"
+                    }
+                    ViewButton(
+                        Modifier.weight(1f), "Today", selectedFilter == "For today"
+                    ) {
+                        selectedFilter = "For today"
+                    }
+                    ViewButton(
+                        Modifier.weight(1f), "Pending", selectedFilter == "Outstanding"
+                    ) {
+                        selectedFilter = "Outstanding"
+                    }
                 }
 
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    "Sort by",
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ViewButton(
+                        Modifier.weight(1f), "Default", selectedSort == "Default"
+                    ) {
+                        selectedSort = "Default"
+                    }
+                    ViewButton(
+                        Modifier.weight(1f), "Priority", selectedSort == "Priority"
+                    ) {
+                        selectedSort = "Priority"
+                    }
+                    ViewButton(
+                        Modifier.weight(1f), "Due Date", selectedSort == "Due Date"
+                    ) {
+                        selectedSort = "Due Date"
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(filteredTasks) { task ->
+                val attachmentCount by homeViewModel.getAttachmentsCountByTaskId(task.id).collectAsState(initial = 0)
+                TaskItem(
+                    task = task,
+                    attachmentCount = attachmentCount,
+                    isDone = task.status == TaskStatus.DONE,
+                    onClick = {
+                        navController.navigate("taskDetails/${task.id}")
+                    }) { checked ->
+                    homeViewModel.updateTask(task.copy(status = if (checked) TaskStatus.DONE else TaskStatus.TODO))
+                }
             }
         }
     }
@@ -252,9 +297,13 @@ fun SearchBar(
     TextField(
         value = query,
         onValueChange = onQueryChange,
-        label = { Text("Search") },
+        label = { Text("Search tasks...") },
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
+            .fillMaxWidth(),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent,
+        )
     )
 }

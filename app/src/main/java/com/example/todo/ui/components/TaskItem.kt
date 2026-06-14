@@ -46,6 +46,7 @@ import java.time.ZoneId
 @Composable
 fun TaskItem(
     task: TaskEntity,
+    attachmentCount: Int = 0,
     isDone: Boolean = false,
     onClick: () -> Unit,
     onCheckedChange: (Boolean) -> Unit,
@@ -151,7 +152,7 @@ fun TaskItem(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("2")
+                        Text(attachmentCount.toString())
                     }
                 }
             }

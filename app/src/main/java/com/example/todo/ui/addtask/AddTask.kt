@@ -46,6 +46,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -65,6 +66,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.navigation.NavController
 import com.example.todo.data.local.Priority
 import com.example.todo.ui.components.SaveTaskButton
 import com.google.android.gms.location.LocationServices
@@ -354,13 +356,17 @@ fun TopPanel(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "arrow back",
+            IconButton(
+                onClick = onBackClick,
                 modifier = Modifier
                     .size(24.dp)
                     .clickable { onBackClick() }
-            )
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "arrow back"
+                )
+            }
             Spacer(Modifier.width(16.dp))
             Text(
                 title,

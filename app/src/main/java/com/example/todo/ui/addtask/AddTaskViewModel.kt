@@ -9,6 +9,7 @@ import com.example.todo.data.local.Priority
 import com.example.todo.data.local.TaskEntity
 import com.example.todo.data.local.TaskRepository
 import com.example.todo.data.local.TaskStatus
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 class AddTaskViewModel(
@@ -47,5 +48,9 @@ class AddTaskViewModel(
                 )
             }
         }
+    }
+
+    fun getAttachmentsCountByTaskId(id: Long): Flow<Int> {
+        return attachmentRepository.getAttachmentsCountForTask(id)
     }
 }

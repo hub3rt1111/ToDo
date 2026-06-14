@@ -1,5 +1,7 @@
 package com.example.todo.data.local
 
+import kotlinx.coroutines.flow.Flow
+
 class AttachmentRepository(
     private val dao: AttachmentDao
 ) {
@@ -18,4 +20,7 @@ class AttachmentRepository(
 
     fun getAttachmentsForTask(taskId: Long) =
         dao.getAttachmentsForTask(taskId)
+
+    fun getAttachmentsCountForTask(taskId: Long): Flow<Int> =
+        dao.getAttachmentsCountForTask(taskId)
 }

@@ -21,4 +21,6 @@ interface AttachmentDao {
     @Query("SELECT * FROM AttachmentEntity WHERE taskId = :taskId")
     fun getAttachmentsForTask(taskId: Long): Flow<List<AttachmentEntity>>
 
+    @Query("SELECT COUNT(*) FROM AttachmentEntity WHERE taskId = :taskId")
+    fun getAttachmentsCountForTask(taskId: Long): Flow<Int>
 }
