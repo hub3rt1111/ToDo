@@ -52,7 +52,9 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,7 +74,9 @@ import com.example.todo.ui.components.SaveTaskButton
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority as LocationPriority
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 
 @Composable
@@ -245,9 +249,9 @@ private fun TaskForm(
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            MyDatePicker(
-                selectedDate = dueDate,
-                onDateSelected = onDueDateChange
+            MyDateTimePicker(
+                selectedDateTime = dueDate,
+                onDateTimeSelected = onDueDateChange
             )
             val locationText = if (latitude != null && longitude != null) {
                 "%.2f, %.2f".format(latitude, longitude)
@@ -472,45 +476,94 @@ fun CategoryPanel(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyDatePicker(
-    selectedDate: Long?,
-    onDateSelected: (Long) -> Unit,
+fun MyDateTimePicker(
+    selectedDateTime: Long?,
+    onDateTimeSelected: (Long) -> Unit,
 ) {
     val datePickerState = rememberDatePickerState()
-    var showDialog by remember { mutableStateOf(false) }
+    val timePickerState = rememberTimePickerState()
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
-    val formattedText = selectedDate?.let {
-        Instant.ofEpochMilli(it)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
-            .toString()
-    } ?: "Select date"
+    val formattedText = selectedDateTime?.let {
+        LocalDateTime.ofInstant(Instant.ofEpochMilli(it), ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+    } ?: "Select date & time"
 
     InfoPanel(
         icon = Icons.Default.CalendarMonth,
         description = "Completion date",
         info = formattedText,
-        onClick = { showDialog = true }
+        onClick = { showDatePicker = true }
     )
 
-    if (showDialog) {
+    if (showDatePicker) {
         DatePickerDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            onDateSelected(it)
-                        }
-                        showDialog = false
+                        showDatePicker = false
+                        showTimePicker = true
                     }
-                ) { Text("OK") }
+                ) { Text("Next") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
             }
         ) {
             DatePicker(state = datePickerState)
         }
     }
+
+    if (showTimePicker) {
+        TimePickerDialog(
+            onDismiss = { showTimePicker = false },
+            onConfirm = {
+                val dateMillis = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+                val date = Instant.ofEpochMilli(dateMillis)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+                
+                val combinedDateTime = date.atTime(timePickerState.hour, timePickerState.minute)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+                
+                onDateTimeSelected(combinedDateTime)
+                showTimePicker = false
+            }
+        ) {
+            TimePicker(state = timePickerState)
+        }
+    }
+}
+
+@Composable
+fun TimePickerDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                content()
+            }
+        }
+    )
 }
 
 @Composable

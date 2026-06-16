@@ -42,6 +42,7 @@ import com.example.todo.ui.theme.PriorityMedium
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun TaskItem(
@@ -119,7 +120,7 @@ fun TaskItem(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(getLabel(task.dueDate), style = MaterialTheme.typography.bodyMedium)
+                        Text(getDateTimeLabel(task.dueDate), style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.width(4.dp))
                         if (task.latitude != null && task.longitude != null) {
                             Icon(
@@ -173,4 +174,23 @@ fun getLabel(dateMillis: Long?): String {
         today.minusDays(1) -> "Yesterday"
         else -> date.toString()
     }
+}
+
+fun getDateTimeLabel(dateMillis: Long?): String {
+    if (dateMillis == null) return "No date"
+    val zonedDateTime = Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault())
+    val date = zonedDateTime.toLocalDate()
+    val time = zonedDateTime.toLocalTime()
+    val today = LocalDate.now()
+
+    val dateLabel = when (date) {
+        today -> "Today"
+        today.plusDays(1) -> "Tomorrow"
+        today.minusDays(1) -> "Yesterday"
+        else -> date.toString()
+    }
+
+    val timeLabel = time.format(DateTimeFormatter.ofPattern("HH:mm"))
+
+    return "$dateLabel $timeLabel"
 }
