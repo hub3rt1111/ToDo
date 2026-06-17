@@ -52,6 +52,7 @@ import com.example.todo.ui.components.TaskItem
 import com.example.todo.ui.components.ViewButton
 import com.example.todo.ui.components.getLabel
 import com.example.todo.ui.settings.Settings
+import com.example.todo.ui.settings.SettingsViewModel
 import com.example.todo.ui.taskdetails.TaskDetails
 import com.example.todo.ui.taskdetails.TaskDetailsViewModel
 import java.time.LocalDate
@@ -83,7 +84,10 @@ fun MainScreen(factory: ToDoViewModelFactory) {
                     viewModel = addTaskViewModel,
                 )
             }
-            composable("settings") { Settings() }
+            composable("settings") {
+                val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
+                Settings(viewModel = settingsViewModel)
+            }
             composable("taskDetails/{taskId}") { backStackEntry ->
                 val taskId = backStackEntry.arguments?.getString("taskId")?.toLong()
                 val taskDetailsViewModel: TaskDetailsViewModel = viewModel(factory = factory)

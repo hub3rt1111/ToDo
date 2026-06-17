@@ -2,6 +2,7 @@ package com.example.todo
 
 import android.app.Application
 import androidx.room.Room
+import com.example.todo.data.SettingsRepository
 import com.example.todo.data.local.AppDatabase
 import com.example.todo.data.local.AttachmentRepository
 import com.example.todo.data.local.TaskRepository
@@ -19,5 +20,9 @@ class TodoApplication : Application() {
 
     val attachmentRepository: AttachmentRepository by lazy {
         AttachmentRepository(database.attachmentDao())
+    }
+
+    val settingsRepository: SettingsRepository by lazy {
+        SettingsRepository(this)
     }
 }
