@@ -23,4 +23,5 @@ class AttachmentRepository(
 
     fun getAttachmentsCountForTask(taskId: Long): Flow<Int> =
         dao.getAttachmentsCountForTask(taskId)
+
 }

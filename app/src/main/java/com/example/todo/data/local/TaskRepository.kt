@@ -16,4 +16,8 @@ class TaskRepository(
     suspend fun updateTask(task: TaskEntity) {
         taskDao.update(task)
     }
+
+    suspend fun getTaskById(taskId: Long): TaskEntity? {
+        return taskDao.getTaskById(taskId)
+    }
 }

@@ -113,15 +113,15 @@ fun TaskItem(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Row() {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.AccessTime,
                             contentDescription = "time",
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(getDateTimeLabel(task.dueDate), style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         if (task.latitude != null && task.longitude != null) {
                             Icon(
                                 imageVector = Icons.Default.LocationOn,

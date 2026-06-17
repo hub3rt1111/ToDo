@@ -35,6 +35,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.Button
@@ -53,6 +55,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -71,6 +74,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.todo.data.local.Priority
 import com.example.todo.ui.components.SaveTaskButton
+import com.example.todo.ui.theme.PriorityHigh
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority as LocationPriority
 import java.time.Instant
@@ -208,7 +212,7 @@ private fun TaskForm(
     onLocationClick: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Column(
@@ -327,7 +331,8 @@ private fun InfoPanel(
             Icon(
                 imageVector = icon,
                 contentDescription = "info image",
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(28.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.width(8.dp))
             Text(description)
@@ -341,7 +346,8 @@ private fun InfoPanel(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = "select",
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }
@@ -351,7 +357,9 @@ private fun InfoPanel(
 fun TopPanel(
     title: String,
     onBackClick: () -> Unit,
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    showDelete: Boolean = false,
+    onDeleteClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -378,8 +386,26 @@ fun TopPanel(
             )
         }
 
-        SaveTaskButton("Save") {
-            onSaveClick()
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (showDelete) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = "delete task",
+                        tint = PriorityHigh
+                    )
+                }
+                Spacer(Modifier.width(4.dp))
+                VerticalDivider(
+                    modifier = Modifier.height(24.dp),
+                    thickness = 1.dp,
+                    color = Color.LightGray
+                )
+                Spacer(Modifier.width(12.dp))
+            }
+            SaveTaskButton("Save") {
+                onSaveClick()
+            }
         }
     }
 }
@@ -434,6 +460,7 @@ fun CategoryPanel(
 
     var expanded by remember { mutableStateOf(false) }
     val categoryItems = listOf("Work", "Personal", "Shopping", "Health", "Finance", "Other")
+
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
@@ -458,7 +485,6 @@ fun CategoryPanel(
 
             )
         )
-
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
