@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.todo.data.local.AttachmentEntity
 import com.example.todo.data.local.AttachmentRepository
 import com.example.todo.data.local.Priority
+import com.example.todo.data.local.RecurrenceType
 import com.example.todo.data.local.TaskEntity
 import com.example.todo.data.local.TaskRepository
 import com.example.todo.data.local.TaskStatus
@@ -17,7 +18,7 @@ class AddTaskViewModel(
     private val attachmentRepository: AttachmentRepository
 ) : ViewModel() {
 
-    fun saveTaskWithAttachment(
+    fun saveTaskWithAttachments(
         title: String,
         description: String,
         priority: Priority,
@@ -25,7 +26,9 @@ class AddTaskViewModel(
         dueDate: Long?,
         latitude: Double?,
         longitude: Double?,
-        attachmentUri: Uri?
+        attachments: List<Uri>,
+        recurrenceType: RecurrenceType = RecurrenceType.NONE,
+        recurrenceInterval: Int = 1
     ) {
         viewModelScope.launch {
             val taskId = taskRepository.addTask(
@@ -39,12 +42,14 @@ class AddTaskViewModel(
                     dueDate = dueDate,
                     latitude = latitude,
                     longitude = longitude,
-                    reminderTime = null
+                    reminderTime = null,
+                    recurrenceType = recurrenceType,
+                    recurrenceInterval = recurrenceInterval
                 )
             )
-            attachmentUri?.let {
+            attachments.forEach { uri ->
                 attachmentRepository.insert(
-                    AttachmentEntity(taskId = taskId, uri = it.toString())
+                    AttachmentEntity(taskId = taskId, uri = uri.toString())
                 )
             }
         }

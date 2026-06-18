@@ -1,7 +1,11 @@
 package com.example.todo.ui.taskdetails
 
+import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -11,11 +15,22 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -24,6 +39,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -41,12 +57,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.todo.data.local.AttachmentEntity
 import com.example.todo.data.local.Priority
+import com.example.todo.data.local.RecurrenceType
+import com.example.todo.data.local.TaskEntity
 import com.example.todo.data.local.TaskStatus
 import com.example.todo.ui.addtask.MyDateTimePicker
 import com.example.todo.ui.addtask.TopPanel
+import com.example.todo.ui.components.InfoPanel
+import com.example.todo.ui.components.RepetitionAlertDialog
 import com.example.todo.ui.components.getDateTimeLabel
-import kotlin.collections.listOf
+import com.example.todo.ui.theme.PriorityHigh
+import com.example.todo.ui.theme.PriorityLow
+import com.example.todo.ui.theme.PriorityMedium
 
 @Composable
 fun TaskDetails(
@@ -57,8 +81,8 @@ fun TaskDetails(
 ) {
     if (taskId == null) return
 
-    val context = LocalContext.current
     val task by viewModel.task.collectAsState()
+    val attachments by viewModel.attachments.collectAsState()
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -67,10 +91,8 @@ fun TaskDetails(
     var dueDate by remember { mutableStateOf<Long?>(null) }
     var priority by remember { mutableStateOf(Priority.LOW) }
     var category by remember { mutableStateOf("") }
-    var attachment by remember { mutableStateOf<Uri?>(null) }
-    var latitude by remember { mutableStateOf<Double?>(null) }
-    var longitude by remember { mutableStateOf<Double?>(null) }
-    var reminderTime by remember { mutableStateOf<Long?>(null) }
+    var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
+    var recurrenceInterval by remember { mutableStateOf(1) }
 
     LaunchedEffect(taskId) {
         viewModel.loadTask(taskId)
@@ -85,9 +107,8 @@ fun TaskDetails(
             dueDate = it.dueDate
             priority = it.priority
             category = it.category ?: ""
-            latitude = it.latitude
-            longitude = it.longitude
-            reminderTime = it.reminderTime
+            recurrenceType = it.recurrenceType
+            recurrenceInterval = it.recurrenceInterval
         }
     }
 
@@ -95,13 +116,35 @@ fun TaskDetails(
         modifier = modifier
             .padding(horizontal = 16.dp)
             .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
     ) {
         TopPanel(
             title = "Task details",
             onBackClick = onBackClick,
-            onSaveClick = { /* TODO: Implement update */ },
+            onSaveClick = {
+                task?.let {
+                    viewModel.updateTask(
+                        it.copy(
+                            title = title,
+                            description = description,
+                            status = status,
+                            dueDate = dueDate,
+                            priority = priority,
+                            category = category,
+                            recurrenceType = recurrenceType,
+                            recurrenceInterval = recurrenceInterval
+                        )
+                    )
+                    onBackClick()
+                }
+            },
             showDelete = true,
-            onDeleteClick = { /* TODO: Implement delete */ }
+            onDeleteClick = {
+                task?.let {
+                    viewModel.deleteTask(it)
+                    onBackClick()
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -114,13 +157,28 @@ fun TaskDetails(
             category = category,
             createdAt = createdAt,
             dueDate = dueDate,
+            recurrenceType = recurrenceType,
+            recurrenceInterval = recurrenceInterval,
+            attachments = attachments,
             onTitleChange = { title = it },
             onDescriptionChange = { description = it },
             onStatusChange = { status = it },
             onPriorityChange = { priority = it },
             onCategoryChange = { category = it },
-            onDueDateChange = { dueDate = it }
+            onDueDateChange = { dueDate = it },
+            onRecurrenceChange = { type, interval ->
+                recurrenceType = type
+                recurrenceInterval = interval
+            },
+            onAddAttachment = { uri ->
+                viewModel.addAttachment(taskId, uri)
+            },
+            onDeleteAttachment = { attachment ->
+                viewModel.deleteAttachment(attachment)
+            }
         )
+        
+        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -134,13 +192,21 @@ fun TaskDetailsForm(
     category: String,
     createdAt: Long?,
     dueDate: Long?,
+    recurrenceType: RecurrenceType,
+    recurrenceInterval: Int,
+    attachments: List<AttachmentEntity>,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onStatusChange: (TaskStatus) -> Unit,
     onPriorityChange: (Priority) -> Unit,
     onCategoryChange: (String) -> Unit,
     onDueDateChange: (Long?) -> Unit,
+    onRecurrenceChange: (RecurrenceType, Int) -> Unit,
+    onAddAttachment: (Uri) -> Unit,
+    onDeleteAttachment: (AttachmentEntity) -> Unit,
 ) {
+    var showRepetitionDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -204,9 +270,9 @@ fun TaskDetailsForm(
                     imageVector = Icons.Default.Flag,
                     contentDescription = null,
                     tint = when (item) {
-                        Priority.HIGH -> Color.Red
-                        Priority.MEDIUM -> Color.Yellow
-                        Priority.LOW -> Color.Green
+                        Priority.HIGH -> PriorityHigh
+                        Priority.MEDIUM -> PriorityMedium
+                        Priority.LOW -> PriorityLow
                     }
                 )
             }
@@ -242,6 +308,55 @@ fun TaskDetailsForm(
     Spacer(Modifier.padding(8.dp))
     CompletionDatePanel(dueDate = dueDate, onDueDateChange = onDueDateChange)
 
+    Spacer(Modifier.padding(8.dp))
+
+    val recurrenceText = when (recurrenceType) {
+        RecurrenceType.NONE -> "None"
+        RecurrenceType.DAILY -> "Daily"
+        RecurrenceType.WEEKLY -> "Weekly"
+        RecurrenceType.MONTHLY -> "Monthly"
+        RecurrenceType.CUSTOM -> "Every $recurrenceInterval days"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(8.dp)
+    ) {
+        InfoPanel(
+            icon = Icons.Default.Repeat,
+            description = "Repetition",
+            info = recurrenceText
+        ) {
+            showRepetitionDialog = true
+        }
+    }
+
+    Spacer(Modifier.padding(8.dp))
+
+    TaskDetailsAttachmentPanel(
+        attachments = attachments,
+        onAddAttachment = onAddAttachment,
+        onDeleteAttachment = onDeleteAttachment,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(8.dp)
+    )
+
+    if (showRepetitionDialog) {
+        RepetitionAlertDialog(
+            onDismissRequest = { showRepetitionDialog = false },
+            onConfirm = { type, interval ->
+                onRecurrenceChange(type, interval)
+            },
+            initialType = recurrenceType,
+            initialInterval = recurrenceInterval
+        )
+    }
 }
 
 @Composable
@@ -388,22 +503,111 @@ fun CompletionDatePanel(
             onDateTimeSelected = onDueDateChange
         )
     }
-
 }
 
 @Composable
-fun LocalizationPanel(modifier: Modifier = Modifier) {
+fun TaskDetailsAttachmentPanel(
+    attachments: List<AttachmentEntity>,
+    onAddAttachment: (Uri) -> Unit,
+    onDeleteAttachment: (AttachmentEntity) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments(),
+    ) { uris ->
+        uris.forEach { uri ->
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            onAddAttachment(uri)
+        }
+    }
+
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Attachments", fontSize = 18.sp)
+            IconButton(onClick = { launcher.launch(arrayOf("*/*")) }) {
+                Icon(Icons.Default.AttachFile, contentDescription = "Add attachment")
+            }
+        }
+
+        if (attachments.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(attachments) { attachment ->
+                    TaskDetailsAttachmentItem(
+                        attachment = attachment,
+                        onRemove = { onDeleteAttachment(attachment) }
+                    )
+                }
+            }
+        } else {
+            Text("No attachments", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+fun TaskDetailsAttachmentItem(
+    attachment: AttachmentEntity,
+    onRemove: () -> Unit
+) {
+    val context = LocalContext.current
+    val uri = Uri.parse(attachment.uri)
+    val mimeType = context.contentResolver.getType(uri)
     
+    val icon = when {
+        mimeType?.startsWith("image/") == true -> Icons.Default.Image
+        mimeType?.startsWith("audio/") == true -> Icons.Default.Mic
+        mimeType == "application/pdf" -> Icons.Default.Description
+        else -> Icons.Default.AttachFile
+    }
+
+    Column(
+        modifier = Modifier
+            .size(80.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .clickable {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, mimeType ?: "*/*")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                }
+            }
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Icon(
+                Icons.Default.Close,
+                contentDescription = "Remove",
+                modifier = Modifier
+                    .size(16.dp)
+                    .clickable { onRemove() }
+            )
+        }
+        Icon(icon, contentDescription = null, modifier = Modifier.size(32.dp))
+        Text(
+            text = uri.lastPathSegment ?: "File",
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1
+        )
+    }
 }
-
-@Composable
-fun AttachmentPanel(modifier: Modifier = Modifier) {
-
-}
-
-@Composable
-fun RepetitionPanel(modifier: Modifier = Modifier) {
-
-}
-
-

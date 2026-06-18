@@ -16,5 +16,7 @@ data class TaskEntity(
     val category: String?,
     val latitude: Double?,
     val longitude: Double?,
-    val reminderTime: Long?
+    val reminderTime: Long?,
+    val recurrenceType: RecurrenceType = RecurrenceType.NONE,
+    val recurrenceInterval: Int = 1
 )

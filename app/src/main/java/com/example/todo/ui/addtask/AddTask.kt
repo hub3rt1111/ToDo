@@ -3,42 +3,45 @@ package com.example.todo.ui.addtask
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -54,6 +57,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberDatePickerState
@@ -65,14 +69,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.navigation.NavController
 import com.example.todo.data.local.Priority
+import com.example.todo.data.local.RecurrenceType
+import com.example.todo.ui.components.RepetitionAlertDialog
 import com.example.todo.ui.components.SaveTaskButton
 import com.example.todo.ui.theme.PriorityHigh
 import com.google.android.gms.location.LocationServices
@@ -95,9 +102,11 @@ fun AddTask(
     var dueDate by remember { mutableStateOf<Long?>(null) }
     var priority by remember { mutableStateOf(Priority.LOW) }
     var category by remember { mutableStateOf("") }
-    var attachment by remember { mutableStateOf<Uri?>(null) }
+    var attachments by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var latitude by remember { mutableStateOf<Double?>(null) }
     var longitude by remember { mutableStateOf<Double?>(null) }
+    var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
+    var recurrenceInterval by remember { mutableStateOf(1) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -124,7 +133,7 @@ fun AddTask(
             title = "Add task",
             onBackClick = onBackClick,
             onSaveClick = {
-                viewModel.saveTaskWithAttachment(
+                viewModel.saveTaskWithAttachments(
                     title = title,
                     description = description,
                     priority = priority,
@@ -132,7 +141,9 @@ fun AddTask(
                     dueDate = dueDate,
                     latitude = latitude,
                     longitude = longitude,
-                    attachmentUri = attachment
+                    attachments = attachments,
+                    recurrenceType = recurrenceType,
+                    recurrenceInterval = recurrenceInterval
                 )
                 onBackClick()
             }
@@ -148,12 +159,19 @@ fun AddTask(
             dueDate = dueDate,
             latitude = latitude,
             longitude = longitude,
+            attachments = attachments,
+            recurrenceType = recurrenceType,
+            recurrenceInterval = recurrenceInterval,
             onDueDateChange = { dueDate = it },
             onTitleChange = { title = it },
             onDescriptionChange = { description = it },
             onPriorityChange = { priority = it },
             onCategoryChange = { category = it },
-            onAttachmentChange = { attachment = it },
+            onAttachmentsChange = { attachments = it },
+            onRecurrenceChange = {type, interval ->
+                recurrenceType = type
+                recurrenceInterval = interval
+            },
             onLocationClick = {
                 if (hasLocationPermission(context)) {
                     getCurrentLocation(context) { lat, lon ->
@@ -203,14 +221,20 @@ private fun TaskForm(
     dueDate: Long?,
     latitude: Double?,
     longitude: Double?,
+    attachments: List<Uri>,
+    recurrenceType: RecurrenceType,
+    recurrenceInterval: Int,
     onDueDateChange: (Long?) -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onPriorityChange: (Priority) -> Unit,
     onCategoryChange: (String) -> Unit,
-    onAttachmentChange: (Uri) -> Unit,
+    onAttachmentsChange: (List<Uri>) -> Unit,
+    onRecurrenceChange: (RecurrenceType, Int) -> Unit,
     onLocationClick: () -> Unit,
 ) {
+    var showRepetitionDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -269,13 +293,33 @@ private fun TaskForm(
             ) {
                 onLocationClick()
             }
+
+            val recurrenceText = when (recurrenceType) {
+                RecurrenceType.NONE -> "None"
+                RecurrenceType.DAILY -> "Daily"
+                RecurrenceType.WEEKLY -> "Weekly"
+                RecurrenceType.MONTHLY -> "Monthly"
+                RecurrenceType.CUSTOM -> "Every $recurrenceInterval days"
+            }
+
             InfoPanel(
                 Icons.Default.Repeat,
                 "Repetition",
-                "Select repetition"
+                recurrenceText
             ) {
-
+                showRepetitionDialog = true
             }
+        }
+
+        if (showRepetitionDialog) {
+            RepetitionAlertDialog(
+                onDismissRequest = { showRepetitionDialog = false },
+                onConfirm = { type, interval ->
+                    onRecurrenceChange(type, interval)
+                },
+                initialType = recurrenceType,
+                initialInterval = recurrenceInterval
+            )
         }
 
         PriorityPanel(
@@ -297,10 +341,9 @@ private fun TaskForm(
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         )
 
-        AttachmentPicker(
-            onFileSelected = { uri ->
-                onAttachmentChange(uri)
-            },
+        AttachmentPanel(
+            attachments = attachments,
+            onAttachmentsChange = onAttachmentsChange,
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
@@ -313,7 +356,7 @@ private fun TaskForm(
 }
 
 @Composable
-private fun InfoPanel(
+fun InfoPanel(
     icon: ImageVector,
     description: String,
     info: String,
@@ -372,7 +415,6 @@ fun TopPanel(
                 onClick = onBackClick,
                 modifier = Modifier
                     .size(24.dp)
-                    .clickable { onBackClick() }
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -593,22 +635,106 @@ fun TimePickerDialog(
 }
 
 @Composable
-fun AttachmentPicker(
-    onFileSelected: (Uri) -> Unit,
+fun AttachmentPanel(
+    attachments: List<Uri>,
+    onAttachmentsChange: (List<Uri>) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(modifier = modifier.fillMaxWidth()) {
-        val launcher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent(),
-        ) { uri ->
-            uri?.let { onFileSelected(it) }
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments(),
+    ) { uris ->
+        uris.forEach { uri ->
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
-        Button(
-            onClick = { launcher.launch("*/*") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Select file")
-        }
+        onAttachmentsChange(attachments + uris)
     }
 
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Attachments", fontSize = 18.sp)
+            IconButton(onClick = { launcher.launch(arrayOf("*/*")) }) {
+                Icon(Icons.Default.AttachFile, contentDescription = "Add attachment")
+            }
+        }
+
+        if (attachments.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(attachments) { uri ->
+                    AttachmentItem(uri = uri, onRemove = {
+                        onAttachmentsChange(attachments.filter { it != uri })
+                    })
+                }
+            }
+        } else {
+            Text("No attachments", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+fun AttachmentItem(
+    uri: Uri,
+    onRemove: () -> Unit
+) {
+    val context = LocalContext.current
+    val mimeType = context.contentResolver.getType(uri)
+    
+    val icon = when {
+        mimeType?.startsWith("image/") == true -> Icons.Default.Image
+        mimeType?.startsWith("audio/") == true -> Icons.Default.Mic
+        mimeType == "application/pdf" -> Icons.Default.Description
+        else -> Icons.Default.AttachFile
+    }
+
+    Column(
+        modifier = Modifier
+            .size(80.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .clickable {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, mimeType ?: "*/*")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    // Handle exception (e.g., no app to open the file)
+                }
+            }
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Icon(
+                Icons.Default.Close,
+                contentDescription = "Remove",
+                modifier = Modifier
+                    .size(16.dp)
+                    .clickable { onRemove() }
+            )
+        }
+        Icon(icon, contentDescription = null, modifier = Modifier.size(32.dp))
+        Text(
+            text = uri.lastPathSegment ?: "File",
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1
+        )
+    }
 }

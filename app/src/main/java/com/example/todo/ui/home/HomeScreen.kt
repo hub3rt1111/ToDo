@@ -94,7 +94,7 @@ fun MainScreen(factory: ToDoViewModelFactory) {
                 TaskDetails(
                     taskId = taskId,
                     viewModel = taskDetailsViewModel,
-                    onBackClick = {}
+                    onBackClick = { navController.popBackStack() }
                 )
             }
         }

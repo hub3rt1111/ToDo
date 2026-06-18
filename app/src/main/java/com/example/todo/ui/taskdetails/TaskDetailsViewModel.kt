@@ -1,5 +1,6 @@
 package com.example.todo.ui.taskdetails
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.todo.data.local.AttachmentEntity
@@ -19,9 +20,15 @@ class TaskDetailsViewModel(
     private val _task = MutableStateFlow<TaskEntity?>(null)
     val task: StateFlow<TaskEntity?> = _task.asStateFlow()
 
+    private val _attachments = MutableStateFlow<List<AttachmentEntity>>(emptyList())
+    val attachments: StateFlow<List<AttachmentEntity>> = _attachments.asStateFlow()
+
     fun loadTask(taskId: Long) {
         viewModelScope.launch {
             _task.value = taskRepository.getTaskById(taskId)
+            attachmentRepository.getAttachmentsForTask(taskId).collect {
+                _attachments.value = it
+            }
         }
     }
 
@@ -37,9 +44,11 @@ class TaskDetailsViewModel(
         }
     }
 
-    fun saveAttachment(attachment: AttachmentEntity) {
+    fun addAttachment(taskId: Long, uri: Uri) {
         viewModelScope.launch {
-            attachmentRepository.insert(attachment)
+            attachmentRepository.insert(
+                AttachmentEntity(taskId = taskId, uri = uri.toString())
+            )
         }
     }
 
@@ -60,5 +69,4 @@ class TaskDetailsViewModel(
             attachmentRepository.update(attachment)
         }
     }
-
 }
