@@ -1,5 +1,8 @@
 package com.example.todo.ui.taskdetails
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -29,6 +32,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.Checkbox
@@ -59,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.todo.data.local.AttachmentEntity
+import com.example.todo.data.local.LocationEntity
 import com.example.todo.data.local.Priority
 import com.example.todo.data.local.RecurrenceType
 import com.example.todo.data.local.TaskEntity
@@ -71,6 +76,8 @@ import com.example.todo.ui.components.getDateTimeLabel
 import com.example.todo.ui.theme.PriorityHigh
 import com.example.todo.ui.theme.PriorityLow
 import com.example.todo.ui.theme.PriorityMedium
+import com.example.todo.util.LocationUtils
+import androidx.core.net.toUri
 
 @Composable
 fun TaskDetails(
@@ -81,8 +88,10 @@ fun TaskDetails(
 ) {
     if (taskId == null) return
 
+    val context = LocalContext.current
     val task by viewModel.task.collectAsState()
     val attachments by viewModel.attachments.collectAsState()
+    val locations by viewModel.locations.collectAsState()
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -109,6 +118,18 @@ fun TaskDetails(
             category = it.category ?: ""
             recurrenceType = it.recurrenceType
             recurrenceInterval = it.recurrenceInterval
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        ) {
+            LocationUtils.getCurrentLocation(context) { lat, lon ->
+                viewModel.addLocation(taskId, lat, lon)
+            }
         }
     }
 
@@ -160,6 +181,9 @@ fun TaskDetails(
             recurrenceType = recurrenceType,
             recurrenceInterval = recurrenceInterval,
             attachments = attachments,
+            locations = locations,
+            taskLatitude = task?.latitude,
+            taskLongitude = task?.longitude,
             onTitleChange = { title = it },
             onDescriptionChange = { description = it },
             onStatusChange = { status = it },
@@ -175,6 +199,23 @@ fun TaskDetails(
             },
             onDeleteAttachment = { attachment ->
                 viewModel.deleteAttachment(attachment)
+            },
+            onAddLocation = {
+                if (LocationUtils.hasLocationPermission(context)) {
+                    LocationUtils.getCurrentLocation(context) { lat, lon ->
+                        viewModel.addLocation(taskId, lat, lon)
+                    }
+                } else {
+                    permissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                }
+            },
+            onDeleteLocation = { location ->
+                viewModel.deleteLocation(location)
             }
         )
         
@@ -195,6 +236,9 @@ fun TaskDetailsForm(
     recurrenceType: RecurrenceType,
     recurrenceInterval: Int,
     attachments: List<AttachmentEntity>,
+    locations: List<LocationEntity>,
+    taskLatitude: Double?,
+    taskLongitude: Double?,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onStatusChange: (TaskStatus) -> Unit,
@@ -204,6 +248,8 @@ fun TaskDetailsForm(
     onRecurrenceChange: (RecurrenceType, Int) -> Unit,
     onAddAttachment: (Uri) -> Unit,
     onDeleteAttachment: (AttachmentEntity) -> Unit,
+    onAddLocation: () -> Unit,
+    onDeleteLocation: (LocationEntity) -> Unit,
 ) {
     var showRepetitionDialog by remember { mutableStateOf(false) }
 
@@ -333,6 +379,21 @@ fun TaskDetailsForm(
             showRepetitionDialog = true
         }
     }
+
+    Spacer(Modifier.padding(8.dp))
+
+    TaskDetailsLocationPanel(
+        locations = locations,
+        taskLatitude = taskLatitude,
+        taskLongitude = taskLongitude,
+        onAddLocation = onAddLocation,
+        onDeleteLocation = onDeleteLocation,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(8.dp)
+    )
 
     Spacer(Modifier.padding(8.dp))
 
@@ -606,6 +667,105 @@ fun TaskDetailsAttachmentItem(
         Icon(icon, contentDescription = null, modifier = Modifier.size(32.dp))
         Text(
             text = uri.lastPathSegment ?: "File",
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+fun TaskDetailsLocationPanel(
+    locations: List<LocationEntity>,
+    taskLatitude: Double?,
+    taskLongitude: Double?,
+    onAddLocation: () -> Unit,
+    onDeleteLocation: (LocationEntity) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Locations", fontSize = 18.sp)
+            IconButton(onClick = onAddLocation) {
+                Icon(Icons.Default.LocationOn, contentDescription = "Add location")
+            }
+        }
+
+        if (locations.isNotEmpty() || (taskLatitude != null && taskLongitude != null)) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (taskLatitude != null && taskLongitude != null) {
+                    item {
+                        TaskDetailsLocationItem(
+                            latitude = taskLatitude,
+                            longitude = taskLongitude,
+                            isPrimary = true,
+                            onRemove = {}
+                        )
+                    }
+                }
+                items(locations) { location ->
+                    TaskDetailsLocationItem(
+                        latitude = location.latitude,
+                        longitude = location.longitude,
+                        onRemove = { onDeleteLocation(location) }
+                    )
+                }
+            }
+        } else {
+            Text("No locations", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@SuppressLint("UseKtx")
+@Composable
+fun TaskDetailsLocationItem(
+    latitude: Double,
+    longitude: Double,
+    isPrimary: Boolean = false,
+    onRemove: () -> Unit
+) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .size(80.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                if (isPrimary) MaterialTheme.colorScheme.primaryContainer 
+                else MaterialTheme.colorScheme.secondaryContainer
+            )
+            .clickable {
+                val gmmIntentUri = "geo:$latitude,$longitude?q=$latitude,$longitude".toUri()
+                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                mapIntent.setPackage("com.google.android.apps.maps")
+                context.startActivity(mapIntent)
+            }
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            if (!isPrimary) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Remove",
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clickable { onRemove() }
+                )
+            } else {
+                Spacer(Modifier.size(16.dp))
+            }
+        }
+        Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(32.dp))
+        Text(
+            text = "%.2f, %.2f".format(latitude, longitude),
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1
         )

@@ -82,6 +82,7 @@ import com.example.todo.data.local.RecurrenceType
 import com.example.todo.ui.components.RepetitionAlertDialog
 import com.example.todo.ui.components.SaveTaskButton
 import com.example.todo.ui.theme.PriorityHigh
+import com.example.todo.util.LocationUtils
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority as LocationPriority
 import java.time.Instant
@@ -114,7 +115,7 @@ fun AddTask(
         if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         ) {
-            getCurrentLocation(context) { lat, lon ->
+            LocationUtils.getCurrentLocation(context) { lat, lon ->
                 latitude = lat
                 longitude = lon
             }
@@ -173,8 +174,8 @@ fun AddTask(
                 recurrenceInterval = interval
             },
             onLocationClick = {
-                if (hasLocationPermission(context)) {
-                    getCurrentLocation(context) { lat, lon ->
+                if (LocationUtils.hasLocationPermission(context)) {
+                    LocationUtils.getCurrentLocation(context) { lat, lon ->
                         latitude = lat
                         longitude = lon
                     }
@@ -191,26 +192,6 @@ fun AddTask(
     }
 }
 
-@SuppressLint("MissingPermission")
-private fun getCurrentLocation(context: Context, onLocationReceived: (Double, Double) -> Unit) {
-    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-    fusedLocationClient.getCurrentLocation(LocationPriority.PRIORITY_HIGH_ACCURACY, null)
-        .addOnSuccessListener { location ->
-            location?.let {
-                onLocationReceived(it.latitude, it.longitude)
-            }
-        }
-}
-
-private fun hasLocationPermission(context: Context): Boolean {
-    return ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.ACCESS_COARSE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
-}
 
 @Composable
 private fun TaskForm(

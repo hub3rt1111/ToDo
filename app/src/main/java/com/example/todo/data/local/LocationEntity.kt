@@ -1,0 +1,14 @@
+package com.example.todo.data.local
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "locations")
+data class LocationEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val taskId: Long,
+    val latitude: Double,
+    val longitude: Double,
+    val address: String? = null
+)

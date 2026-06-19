@@ -10,12 +10,14 @@ import com.example.todo.data.local.RecurrenceType
 import com.example.todo.data.local.TaskEntity
 import com.example.todo.data.local.TaskRepository
 import com.example.todo.data.local.TaskStatus
+import com.example.todo.util.TaskReminderManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 class AddTaskViewModel(
     private val taskRepository: TaskRepository,
-    private val attachmentRepository: AttachmentRepository
+    private val attachmentRepository: AttachmentRepository,
+    private val taskReminderManager: TaskReminderManager
 ) : ViewModel() {
 
     fun saveTaskWithAttachments(
@@ -31,27 +33,31 @@ class AddTaskViewModel(
         recurrenceInterval: Int = 1
     ) {
         viewModelScope.launch {
-            val taskId = taskRepository.addTask(
-                TaskEntity(
-                    title = title,
-                    description = description,
-                    createdAt = System.currentTimeMillis(),
-                    priority = priority,
-                    category = category,
-                    status = TaskStatus.TODO,
-                    dueDate = dueDate,
-                    latitude = latitude,
-                    longitude = longitude,
-                    reminderTime = null,
-                    recurrenceType = recurrenceType,
-                    recurrenceInterval = recurrenceInterval
-                )
+            val task = TaskEntity(
+                title = title,
+                description = description,
+                createdAt = System.currentTimeMillis(),
+                priority = priority,
+                category = category,
+                status = TaskStatus.TODO,
+                dueDate = dueDate,
+                latitude = latitude,
+                longitude = longitude,
+                reminderTime = null,
+                recurrenceType = recurrenceType,
+                recurrenceInterval = recurrenceInterval
             )
+            val taskId = taskRepository.addTask(task)
+            val savedTask = task.copy(id = taskId)
+            
             attachments.forEach { uri ->
                 attachmentRepository.insert(
                     AttachmentEntity(taskId = taskId, uri = uri.toString())
                 )
             }
+            
+            // Schedule reminders for the new task
+            taskReminderManager.scheduleTaskReminders(savedTask)
         }
     }
 

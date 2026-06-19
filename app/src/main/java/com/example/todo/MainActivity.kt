@@ -18,7 +18,10 @@ class MainActivity : ComponentActivity() {
         val taskRepository = app.taskRepository
         val attachmentRepository = app.attachmentRepository
         val settingsRepository = app.settingsRepository
-        val factory = ToDoViewModelFactory(taskRepository, attachmentRepository, settingsRepository)
+        val locationRepository = app.locationRepository
+        val taskReminderManager = app.taskReminderManager
+
+        val factory = ToDoViewModelFactory(taskRepository, attachmentRepository, settingsRepository, locationRepository, taskReminderManager)
 
 
 
